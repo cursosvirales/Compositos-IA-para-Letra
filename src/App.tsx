@@ -32,6 +32,8 @@ const ATMOSPHERE_OPTIONS: Atmosphere[] = [
   'Intensa', 'Tensa', 'Agresiva', 'Ambiental', 'Espiritual', 'Cristiana'
 ];
 
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+
 export default function App() {
   const [vocalist, setVocalist] = useState<Vocalist>('Mujer');
   const [styles, setStyles] = useState<Style[]>(['Balada']);
@@ -108,7 +110,9 @@ export default function App() {
     setError('');
     
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      if (!process.env.GEMINI_API_KEY) {
+        throw new Error('La clave API de Gemini no está configurada. Por favor, asegúrate de que GEMINI_API_KEY esté en el entorno.');
+      }
       const model = 'gemini-3.1-pro-preview';
       
       const systemInstruction = `Eres un Ingeniero de Prompts Musicales y Compositor Lírico experto. 
