@@ -196,7 +196,7 @@ Genera el prompt técnico (English) y la letra (Spanish) siguiendo las reglas de
   };
 
   return (
-    <div className="min-h-screen bg-slate-200 text-slate-900 font-sans antialiased p-4 md:p-6 lg:p-8 selection:bg-indigo-100 overflow-y-auto">
+    <div className="min-h-screen bg-emerald-50 text-slate-900 font-sans antialiased p-4 md:p-6 lg:p-8 selection:bg-indigo-100 overflow-y-auto">
       {/* Bento Grid Container */}
       <div className="max-w-[1600px] mx-auto flex flex-col gap-4">
         
