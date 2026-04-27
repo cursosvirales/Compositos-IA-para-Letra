@@ -109,7 +109,7 @@ export default function App() {
     
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const model = 'gemini-3-flash-preview';
+      const model = 'gemini-3.1-pro-preview';
       
       const systemInstruction = `Eres un Ingeniero de Prompts Musicales y Compositor Lírico experto. 
 Tu misión es transformar variables en una estructura de canción completa y un prompt técnico en inglés.
@@ -156,12 +156,32 @@ Genera el prompt técnico (English) y la letra (Spanish) siguiendo las reglas de
         }
       });
 
-      const result = JSON.parse(response.text || '{}');
-      setPrompt(result.prompt || '');
-      setLyrics(result.lyrics || '');
+      const rawText = response.text || '';
+      if (!rawText) {
+        throw new Error('La respuesta de la IA está vacía.');
+      }
+
+      // Robust JSON cleaning
+      const jsonStart = rawText.indexOf('{');
+      const jsonEnd = rawText.lastIndexOf('}');
+      
+      if (jsonStart === -1 || jsonEnd === -1) {
+        throw new Error('No se pudo encontrar un formato JSON válido en la respuesta.');
+      }
+      
+      const cleanJson = rawText.substring(jsonStart, jsonEnd + 1);
+      const result = JSON.parse(cleanJson);
+
+      if (!result.prompt || !result.lyrics) {
+        throw new Error('La respuesta no contiene los campos requeridos (prompt o lyrics).');
+      }
+
+      setPrompt(result.prompt);
+      setLyrics(result.lyrics);
     } catch (err) {
-      console.error(err);
-      setError('Hubo un error al generar la canción. Por favor intenta de nuevo.');
+      console.error('Generation Error:', err);
+      const message = err instanceof Error ? err.message : 'Error desconocido';
+      setError(`Error al generar la canción: ${message}. Por favor intenta de nuevo.`);
     } finally {
       setLoading(false);
     }
@@ -172,31 +192,31 @@ Genera el prompt técnico (English) y la letra (Spanish) siguiendo las reglas de
   };
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-[#f8fafc] font-sans antialiased p-4 md:p-6 lg:p-8 selection:bg-[#6366f1]/30 overflow-y-auto">
+    <div className="min-h-screen bg-slate-200 text-slate-900 font-sans antialiased p-4 md:p-6 lg:p-8 selection:bg-indigo-100 overflow-y-auto">
       {/* Bento Grid Container */}
       <div className="max-w-[1600px] mx-auto flex flex-col gap-4">
         
         {/* Header Card */}
-        <header className="w-full bg-[#1e293b] border border-[#334155] rounded-2xl px-6 py-4 flex items-center justify-between bg-gradient-to-r from-[#1e293b] to-[#312e81]">
+        <header className="w-full bg-white border border-slate-200 rounded-2xl px-6 py-4 flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-4">
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
-              <span className="text-sm font-bold text-[#e2e8f0] flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-[#818cf8]" />
+              <span className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-indigo-600" />
                 Crea tu Canción Personalizada
               </span>
             </div>
-            <span className="hidden sm:inline-block text-[10px] bg-[#818cf8]/20 text-[#818cf8] px-2 py-1 rounded-full font-bold uppercase tracking-wider">
+            <span className="hidden sm:inline-block text-[10px] bg-indigo-50 text-indigo-600 px-2 py-1 rounded-full font-bold uppercase tracking-wider">
               Composer Pro v2.4
             </span>
           </div>
-          <div className="text-sm font-bold text-[#818cf8] flex items-center gap-2">
+          <div className="text-sm font-bold text-indigo-600 flex items-center gap-2">
             <span>cancionpersonalizada.cl</span>
           </div>
         </header>
 
         {/* Selection Tip */}
         <div className="w-full flex justify-center -mb-2">
-          <span className="text-[10px] font-bold text-[#818cf8] bg-[#818cf8]/10 px-4 py-1 rounded-full border border-[#818cf8]/20 uppercase tracking-[0.2em]">
+          <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-4 py-1 rounded-full border border-indigo-100 uppercase tracking-[0.2em]">
             Nota: elige hasta 2 estilos y 2 atmósferas
           </span>
         </div>
@@ -206,8 +226,8 @@ Genera el prompt técnico (English) y la letra (Spanish) siguiendo las reglas de
           {/* Selections Group */}
           <div className="md:col-span-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
             {/* Vocalist */}
-            <div className="bg-[#1e293b] border border-[#334155] rounded-2xl p-5 flex flex-col">
-              <label className="text-[10px] uppercase font-bold tracking-widest text-[#94a3b8] mb-3 flex items-center gap-2">
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col shadow-sm">
+              <label className="text-[10px] uppercase font-bold tracking-widest text-slate-400 mb-3 flex items-center gap-2">
                 <Mic2 className="w-3 h-3" /> Vocalista
               </label>
               <div className="flex flex-wrap gap-2">
@@ -217,8 +237,8 @@ Genera el prompt técnico (English) y la letra (Spanish) siguiendo las reglas de
                     onClick={() => setVocalist(opt)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all duration-200 ${
                       vocalist === opt
-                        ? 'bg-[#6366f1] border-[#818cf8] text-white shadow-[0_0_15px_rgba(99,102,241,0.3)]'
-                        : 'bg-[#334155] border-[#475569] text-[#cbd5e1] hover:border-[#6366f1]/50'
+                        ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-200'
+                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-indigo-300'
                     }`}
                   >
                     {opt}
@@ -228,12 +248,12 @@ Genera el prompt técnico (English) y la letra (Spanish) siguiendo las reglas de
             </div>
 
             {/* Style Dropdown */}
-            <div className="bg-[#1e293b] border border-[#334155] rounded-2xl p-5 flex flex-col relative focus-within:border-[#6366f1]/50 transition-colors">
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col relative focus-within:border-indigo-400/50 transition-colors shadow-sm">
               <div className="flex items-center justify-between mb-3">
-                <label className="text-[10px] uppercase font-bold tracking-widest text-[#94a3b8] flex items-center gap-2">
+                <label className="text-[10px] uppercase font-bold tracking-widest text-slate-400 flex items-center gap-2">
                   <Music className="w-3 h-3" /> Estilos
                 </label>
-                <span className="text-[9px] text-[#475569] font-bold">{styles.length}/2</span>
+                <span className="text-[9px] text-slate-300 font-bold">{styles.length}/2</span>
               </div>
               
               <div className="flex flex-col gap-3">
@@ -245,8 +265,8 @@ Genera el prompt técnico (English) y la letra (Spanish) siguiendo las reglas de
                       onClick={() => toggleStyle(opt)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all duration-200 ${
                         styles.includes(opt)
-                          ? 'bg-[#6366f1] border-[#818cf8] text-white shadow-[0_0_15px_rgba(99,102,241,0.3)]'
-                          : 'bg-[#334155] border-[#475569] text-[#cbd5e1] hover:border-[#6366f1]/50'
+                          ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-200'
+                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-indigo-300'
                       }`}
                     >
                       {opt}
@@ -261,7 +281,7 @@ Genera el prompt técnico (English) y la letra (Spanish) siguiendo las reglas de
                       setShowStyles(!showStyles);
                       setShowAtmospheres(false);
                     }}
-                    className="w-full bg-[#0f172a] border border-[#334155] rounded-xl p-3 text-xs font-semibold text-[#e2e8f0] flex items-center justify-between hover:border-[#6366f1] transition-all"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-semibold text-slate-700 flex items-center justify-between hover:border-indigo-400 transition-all"
                   >
                     <span className="truncate max-w-[80%]">
                       {styles.some(s => !orderedStyles.slice(0, 5).includes(s)) 
@@ -277,7 +297,7 @@ Genera el prompt técnico (English) y la letra (Spanish) siguiendo las reglas de
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 10 }}
-                        className="absolute left-0 right-0 top-full mt-2 bg-[#1e293b] border border-[#334155] rounded-xl shadow-2xl z-50 max-h-[250px] overflow-y-auto custom-scrollbar p-2"
+                        className="absolute left-0 right-0 top-full mt-2 bg-white border border-slate-200 rounded-xl shadow-xl z-50 max-h-[250px] overflow-y-auto custom-scrollbar p-2"
                       >
                         {[...orderedStyles.slice(5)].sort((a, b) => {
                           const aSel = styles.includes(a);
@@ -294,8 +314,8 @@ Genera el prompt técnico (English) y la letra (Spanish) siguiendo las reglas de
                             }}
                             className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium flex items-center justify-between transition-colors mb-1 ${
                               styles.includes(opt)
-                                ? 'bg-[#6366f1] text-white'
-                                : 'text-[#cbd5e1] hover:bg-[#334155]'
+                                ? 'bg-indigo-600 text-white'
+                                : 'text-slate-600 hover:bg-slate-50'
                             }`}
                           >
                             {opt}
@@ -310,12 +330,12 @@ Genera el prompt técnico (English) y la letra (Spanish) siguiendo las reglas de
             </div>
 
             {/* Atmosphere Dropdown */}
-            <div className="bg-[#1e293b] border border-[#334155] rounded-2xl p-5 flex flex-col relative focus-within:border-[#6366f1]/50 transition-colors">
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col relative focus-within:border-indigo-400/50 transition-colors shadow-sm">
               <div className="flex items-center justify-between mb-3">
-                <label className="text-[10px] uppercase font-bold tracking-widest text-[#94a3b8] flex items-center gap-2">
+                <label className="text-[10px] uppercase font-bold tracking-widest text-slate-400 flex items-center gap-2">
                   <Wind className="w-3 h-3" /> Atmósferas
                 </label>
-                <span className="text-[9px] text-[#475569] font-bold">{atmospheres.length}/2</span>
+                <span className="text-[9px] text-slate-300 font-bold">{atmospheres.length}/2</span>
               </div>
               
               <div className="flex flex-col gap-3">
@@ -327,8 +347,8 @@ Genera el prompt técnico (English) y la letra (Spanish) siguiendo las reglas de
                       onClick={() => toggleAtmosphere(opt)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all duration-200 ${
                         atmospheres.includes(opt)
-                          ? 'bg-[#6366f1] border-[#818cf8] text-white shadow-[0_0_15px_rgba(99,102,241,0.3)]'
-                          : 'bg-[#334155] border-[#475569] text-[#cbd5e1] hover:border-[#6366f1]/50'
+                          ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-200'
+                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-indigo-300'
                       }`}
                     >
                       {opt}
@@ -343,7 +363,7 @@ Genera el prompt técnico (English) y la letra (Spanish) siguiendo las reglas de
                       setShowAtmospheres(!showAtmospheres);
                       setShowStyles(false);
                     }}
-                    className="w-full bg-[#0f172a] border border-[#334155] rounded-xl p-3 text-xs font-semibold text-[#e2e8f0] flex items-center justify-between hover:border-[#6366f1] transition-all"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-semibold text-slate-700 flex items-center justify-between hover:border-indigo-400 transition-all"
                   >
                     <span className="truncate max-w-[80%]">
                       {atmospheres.some(a => !orderedAtmospheres.slice(0, 5).includes(a)) 
@@ -359,7 +379,7 @@ Genera el prompt técnico (English) y la letra (Spanish) siguiendo las reglas de
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 10 }}
-                        className="absolute left-0 right-0 top-full mt-2 bg-[#1e293b] border border-[#334155] rounded-xl shadow-2xl z-50 max-h-[250px] overflow-y-auto custom-scrollbar p-2"
+                        className="absolute left-0 right-0 top-full mt-2 bg-white border border-slate-200 rounded-xl shadow-xl z-50 max-h-[250px] overflow-y-auto custom-scrollbar p-2"
                       >
                         {[...orderedAtmospheres.slice(5)].sort((a, b) => {
                           const aSel = atmospheres.includes(a);
@@ -376,8 +396,8 @@ Genera el prompt técnico (English) y la letra (Spanish) siguiendo las reglas de
                             }}
                             className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium flex items-center justify-between transition-colors mb-1 ${
                               atmospheres.includes(opt)
-                                ? 'bg-[#6366f1] text-white'
-                                : 'text-[#cbd5e1] hover:bg-[#334155]'
+                                ? 'bg-indigo-600 text-white'
+                                : 'text-slate-600 hover:bg-slate-50'
                             }`}
                           >
                             {opt}
@@ -393,20 +413,20 @@ Genera el prompt técnico (English) y la letra (Spanish) siguiendo las reglas de
           </div>
 
           {/* History / Action Area */}
-          <div className="md:col-span-4 bg-[#1e293b] border border-[#334155] rounded-2xl p-5 flex flex-col">
-            <label className="text-[10px] uppercase font-bold tracking-widest text-[#94a3b8] mb-3 flex items-center gap-2">
+          <div className="md:col-span-4 bg-white border border-slate-200 rounded-2xl p-5 flex flex-col shadow-sm">
+            <label className="text-[10px] uppercase font-bold tracking-widest text-slate-400 mb-3 flex items-center gap-2">
               <History className="w-3 h-3" /> Historia / Relato Base
             </label>
             <textarea
               value={history}
               onChange={(e) => setHistory(e.target.value)}
               placeholder="Escribe la historia de la canción..."
-              className="flex-1 w-full bg-[#0f172a] border border-[#334155] rounded-xl p-3 text-sm text-[#e2e8f0] focus:outline-none focus:border-[#6366f1] transition-colors resize-none placeholder:text-[#475569] min-h-[100px]"
+              className="flex-1 w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm text-slate-800 focus:outline-none focus:border-indigo-400 transition-colors resize-none placeholder:text-slate-300 min-h-[100px]"
             />
             <button
               onClick={generateSong}
               disabled={loading}
-              className="mt-4 w-full py-3 bg-[#10b981] hover:bg-[#059669] disabled:bg-[#334155] disabled:text-[#475569] text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2"
+              className="mt-4 w-full py-3 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-100 disabled:text-slate-400 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-sm"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
               {loading ? 'GENERANDO...' : 'GENERAR'}
@@ -420,41 +440,41 @@ Genera el prompt técnico (English) y la letra (Spanish) siguiendo las reglas de
         {/* Output Section (Bottom Area) */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
           {/* Prompt Result */}
-          <div className="md:col-span-12 bg-[#1e293b] border border-[#334155] border-l-4 border-l-[#6366f1] rounded-2xl p-5 flex flex-col gap-2">
+          <div className="md:col-span-12 bg-white border border-slate-200 border-l-4 border-l-indigo-600 rounded-2xl p-5 flex flex-col gap-2 shadow-sm">
             <div className="flex items-center justify-between">
-              <label className="text-[10px] uppercase font-bold tracking-widest text-[#818cf8]">
+              <label className="text-[10px] uppercase font-bold tracking-widest text-indigo-600">
                 Prompt para Generación de Audio (En Inglés)
               </label>
               {prompt && (
-                <button onClick={() => copyToClipboard(prompt)} className="p-1 px-2 text-[10px] font-bold text-[#94a3b8] hover:text-[#818cf8] flex items-center gap-1">
+                <button onClick={() => copyToClipboard(prompt)} className="p-1 px-2 text-[10px] font-bold text-slate-400 hover:text-indigo-600 flex items-center gap-1">
                   <Copy className="w-3 h-3" /> COPIAR PROMPT
                 </button>
               )}
             </div>
-            <div className="font-mono text-sm text-[#cbd5e1] leading-relaxed bg-[#0f172a]/50 p-4 rounded-xl">
-              {prompt ? `> ${prompt}` : <span className="text-[#475569] italic">El prompt aparecerá aquí...</span>}
+            <div className="font-mono text-sm text-slate-700 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100">
+              {prompt ? `> ${prompt}` : <span className="text-slate-300 italic">El prompt aparecerá aquí...</span>}
             </div>
           </div>
 
           {/* Lyrics Result */}
-          <div className="md:col-span-12 bg-[#1e293b] border border-[#334155] rounded-2xl p-5 flex flex-col gap-4 min-h-[500px]">
+          <div className="md:col-span-12 bg-white border border-slate-200 rounded-2xl p-5 flex flex-col gap-4 min-h-[500px] shadow-sm">
             <div className="flex items-center justify-between">
-              <label className="text-[10px] uppercase font-bold tracking-widest text-[#10b981]">
+              <label className="text-[10px] uppercase font-bold tracking-widest text-emerald-600">
                 Letra de la Canción (Editable - Español)
               </label>
               {lyrics && (
-                <button onClick={() => copyToClipboard(lyrics)} className="p-1 px-2 text-[10px] font-bold text-[#94a3b8] hover:text-[#10b981] flex items-center gap-1">
+                <button onClick={() => copyToClipboard(lyrics)} className="p-1 px-2 text-[10px] font-bold text-slate-400 hover:text-emerald-500 flex items-center gap-1">
                   <Copy className="w-3 h-3" /> COPIAR LETRA
                 </button>
               )}
             </div>
-            <div className="flex-1 bg-[#0f172a] rounded-xl overflow-hidden">
+            <div className="flex-1 bg-slate-50 rounded-xl overflow-hidden border border-slate-100">
               <textarea
                 value={lyrics}
                 onChange={(e) => setLyrics(e.target.value)}
                 placeholder="La letra aparecerá aquí..."
                 spellCheck={false}
-                className="w-full h-full p-8 text-[#e2e8f0] font-serif text-lg md:text-xl leading-relaxed outline-none resize-none bg-transparent placeholder:text-[#475569] placeholder:italic"
+                className="w-full h-full p-8 text-slate-800 font-serif text-lg md:text-xl leading-relaxed outline-none resize-none bg-transparent placeholder:text-slate-300 placeholder:italic"
               />
             </div>
           </div>
